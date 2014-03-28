@@ -5,4 +5,4 @@ newrev=$2
 
 source /data/venvs/smithers/bin/activate
 
-python bin/peep.py install -r requirements.txt
+bin/peep.py install -r requirements.txt
