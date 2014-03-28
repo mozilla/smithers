@@ -19,4 +19,4 @@ cat /tmp/redis-commands.txt | redis-cli
 
 rm /tmp/redis-commands.txt
 
-gzip $NEW_LOG
+bzip2 $NEW_LOG
