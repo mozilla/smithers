@@ -5,4 +5,8 @@ newrev=$2
 
 source /data/venvs/smithers/bin/activate
 
+# delete pyc files
+find . -name "*.pyc" -delete
+
+# make sure our dependencies are installed
 bin/peep.py install -r requirements.txt
