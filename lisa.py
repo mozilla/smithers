@@ -15,7 +15,7 @@ from smithers import conf
 
 
 parser = argparse.ArgumentParser(description='Lisa does smart things with IPs.')
-parser.add_argument('--file', default='GeoIP2-City.mmdb',
+parser.add_argument('--file', default='/usr/local/share/GeoIP/GeoIP2-City.mmdb',
                     help='path to mmdb file')
 parser.add_argument('-v', '--verbose', action='store_true')
 
