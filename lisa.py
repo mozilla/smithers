@@ -33,7 +33,7 @@ except IOError:
 
 while True:
     ip_info = redis.brpop(conf.REDIS_BUCKETS['IPLOGS'])
-    rtype, rtime, ip = ip_info[1].split(':')
+    rtype, rtime, ip = ip_info[1].split(',')
     record = geo.get(ip)
     if record:
         redis.incr(conf.REDIS_BUCKETS['DOWNLOAD_TOTAL'])
