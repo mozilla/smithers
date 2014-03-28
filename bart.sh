@@ -7,11 +7,16 @@
 # 4) use proper logrotate system rather than this hack
 
 # Replace with proper logrotate config and process the rotated file
-cp /var/log/glow.log /tmp/glow.log
-cat < /dev/null > /var/log/glow.log
+EPOCH=`date +%s`
+NEW_LOG="/var/log/glowmo/syslog/glow.${EPOCH}.log"
 
-cat /tmp/glow.log | grep -iE 'firefox-(28|latest)' | awk '{print "lpush geoip d," $2 "," $3}' > /tmp/redis-commands.txt
+mv -f /var/log/glow.log $NEW_LOG
+kill -HUP `cat /var/run/syslogd.pid`
+
+cat $NEW_LOG | grep -iE 'firefox-(28|latest)' | awk '{print "lpush geoip d," $2 "," $3}' > /tmp/redis-commands.txt
 
 cat /tmp/redis-commands.txt | redis-cli
 
-rm /tmp/glow.log /tmp/redis-commands.txt
+rm /tmp/redis-commands.txt
+
+gzip $NEW_LOG
