@@ -9,7 +9,7 @@ import sys
 
 import maxminddb
 from redis import StrictRedis
-from statsd import statsd
+from statsd import StatsClient
 
 from smithers import conf
 
@@ -22,6 +22,10 @@ parser.add_argument('-v', '--verbose', action='store_true')
 
 args = parser.parse_args()
 redis = StrictRedis()
+
+statsd = StatsClient(host=conf.STATSD_HOST,
+                     port=conf.STATSD_PORT,
+                     prefix=conf.STATSD_PREFIX)
 
 try:
     geo = maxminddb.Reader(args.file)
