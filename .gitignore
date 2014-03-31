@@ -1,5 +1,6 @@
 *.py[cod]
 */conf/local.py
+/JSON
 
 # C extensions
 *.so
