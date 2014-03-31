@@ -5,11 +5,11 @@ Grab IP addresses from Redis and lookup Geo info.
 """
 
 import argparse
-import signal
 import sys
 
 import maxminddb
 from redis import StrictRedis
+from statsd import statsd
 
 from smithers import conf
 
@@ -31,6 +31,8 @@ except IOError:
     sys.exit(1)
 
 
+counter = 0
+
 while True:
     ip_info = redis.brpop(conf.REDIS_BUCKETS['IPLOGS'])
     rtype, rtime, ip = ip_info[1].split(',')
@@ -45,3 +47,8 @@ while True:
     if args.verbose:
         sys.stdout.write('.')
         sys.stdout.flush()
+
+    counter += 1
+    if counter >= 100:
+        counter = 0
+        statsd.gauge('queue.geoip', redis.llen(conf.REDIS_BUCKETS['IPLOGS']))

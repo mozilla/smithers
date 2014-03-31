@@ -12,3 +12,6 @@ redis==2.9.1
 
 # sha256: xE35VNncyfV2gr-Pq_FyoRLt9T_zW7XOj4__GxmFq7E
 hiredis==0.1.2
+
+# sha256: RdsWgxKmgg_XhpfHtv0BlvOvkiyOvIhUDt0Nb6_tVU0
+statsd==2.1.2
