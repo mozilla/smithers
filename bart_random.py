@@ -9,7 +9,7 @@ import random
 import socket
 import struct
 import sys
-import time
+from datetime import datetime
 
 import redis
 
@@ -32,6 +32,7 @@ def get_random_ip():
 
 
 for i in xrange(args.count):
-    r.lpush(conf.REDIS_BUCKETS['IPLOGS'], 'd:%s:%s' % (time.time(), get_random_ip()))
+    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+    r.lpush(conf.REDIS_BUCKETS['IPLOGS'], 'd,%s,%s' % (timestamp, get_random_ip()))
     sys.stdout.write('.')
     sys.stdout.flush()

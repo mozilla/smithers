@@ -5,14 +5,20 @@ Grab IP addresses from Redis and lookup Geo info.
 """
 
 import argparse
+import signal
 import sys
 
 import maxminddb
-from redis import StrictRedis
+from redis import RedisError, StrictRedis
 from statsd import StatsClient
 
 from smithers import conf
+from smithers.utils import AttrDict, get_db_time_key
 
+
+# has the system requested shutdown
+KILLED = False
+RKEYS = AttrDict(conf.REDIS_BUCKETS)
 
 parser = argparse.ArgumentParser(description='Lisa does smart things with IPs.')
 parser.add_argument('--file', default=conf.GEOIP_DB_FILE,
@@ -35,24 +41,68 @@ except IOError:
     sys.exit(1)
 
 
-counter = 0
+def handle_signals(signum, frame):
+    global KILLED
+    KILLED = True
 
-while True:
-    ip_info = redis.brpop(conf.REDIS_BUCKETS['IPLOGS'])
-    rtype, rtime, ip = ip_info[1].split(',')
-    record = geo.get(ip)
-    if record:
-        redis.incr(conf.REDIS_BUCKETS['DOWNLOAD_TOTAL'])
-        country = record.get('country', record.get('registered_country'))
-        if country:
-            redis.hincrby(conf.REDIS_BUCKETS['DOWNLOAD_TOTAL_COUNTRY'],
-                      country['iso_code'], 1)
 
-    if args.verbose:
-        sys.stdout.write('.')
-        sys.stdout.flush()
+signal.signal(signal.SIGHUP, handle_signals)
+signal.signal(signal.SIGINT, handle_signals)
+signal.signal(signal.SIGTERM, handle_signals)
 
-    counter += 1
-    if counter >= 100:
-        counter = 0
-        statsd.gauge('queue.geoip', redis.llen(conf.REDIS_BUCKETS['IPLOGS']))
+
+def process_download(timestamp, geo_data):
+    """Add download aggregate data to redis."""
+    redis.incr(RKEYS.DOWNLOAD_TOTAL)
+    try:
+        location = geo_data['location']
+        lat, lon = location['latitude'], location['longitude']
+    except KeyError:
+        return
+
+    geo_key = '{lat}:{lon}'.format(lat=lat, lon=lon)
+    unix_min = get_db_time_key(timestamp)
+    time_key = RKEYS.DOWNLOAD_GEO.format(timestamp=unix_min)
+    redis.hincrby(time_key, geo_key, 1)
+
+    # store the timestamp used in a sorted set for use in milhouse
+    redis.zadd(RKEYS.DOWNLOAD_TIMESTAMPS, unix_min, unix_min)
+
+
+def process_share(timestamp, geo_data, share_type):
+    """Add share aggregate data to redis."""
+    redis.incr(RKEYS.SHARE_TOTAL)
+
+
+def main():
+    counter = 0
+
+    while True:
+        if KILLED:
+            return 0
+        try:
+            ip_info = redis.brpop(RKEYS.IPLOGS)
+        except RedisError as e:
+            print 'Error with Redis: {}'.format(e)
+            return 1
+        rtype, rtime, ip = ip_info[1].split(',')
+        record = geo.get(ip)
+        if record:
+            is_download = rtype == conf.DOWNLOAD
+            if is_download:
+                process_download(rtime, record)
+            else:
+                process_share(rtime, record, rtype)
+
+        if args.verbose:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+
+        counter += 1
+        if counter >= 1000:
+            counter = 0
+            statsd.gauge('queue.geoip', redis.llen(RKEYS.IPLOGS))
+
+
+if __name__ == '__main__':
+    sys.exit(main())
