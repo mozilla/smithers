@@ -30,19 +30,4 @@ def get_epoch_minute(dt):
 
 def get_db_time_key(timestamp):
     """Convert a timestamp string to a rounded unix time."""
-    return get_epoch_minute(get_datetime_utc(timestamp))
-
-
-class AttrDict(dict):
-    """Dict with keys accessable as attributes.
-
-    Example:
-        d = AttrDict({'dude': 'abide', 'donny': 'walrus'})
-        d.dude == 'abide'  # True
-        d.donny == 'walrus'  # True
-
-    Shamelessly borrowed from http://stackoverflow.com/a/14620633
-    """
-    def __init__(self, iterable=None, **kwargs):
-        super(AttrDict, self).__init__(iterable, **kwargs)
-        self.__dict__ = self
+    return str(get_epoch_minute(get_datetime_utc(timestamp)))
