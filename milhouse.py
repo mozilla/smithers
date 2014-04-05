@@ -74,7 +74,7 @@ def get_data_for_timestamp(timestamp):
     Return aggregate map and share data dict for a timestamp.
     """
     data = {
-        'map_total': redis.get(rkeys.MAP_TOTAL),
+        'map_total': int(redis.get(rkeys.MAP_TOTAL)),
         'map_geo': [],
     }
     map_geo_key = rkeys.MAP_GEO.format(timestamp=timestamp)
