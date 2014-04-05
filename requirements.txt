@@ -21,3 +21,6 @@ pytz==2014.2
 
 # sha256: 7shlMH6-fzKaaplFwVRTJlpEnNqvNxA0CCihk01T5Gg
 python-dateutil==2.2
+
+# sha256: jzT1uJ4X-opuOUUxAxjL1cjLsW-iiPeOqW28cDRMsb8
+six==1.6.1
