@@ -71,6 +71,7 @@ def process_map(timestamp, geo_data):
             'lon': geo_data['location']['longitude'],
         }
     except KeyError:
+        # this appears to mostly happen with anonymous proxies
         log.info('Geo data contained no location.')
         log.debug(geo_data)
         return
