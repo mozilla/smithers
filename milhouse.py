@@ -99,6 +99,9 @@ def write_json_for_timestamp(timestamp):
     with open(filename, 'w') as fh:
         json.dump(data, fh)
 
+    log.debug('Wrote file for {}'.format(timestamp))
+    log.debug(filename)
+
 
 def main():
     counter = 0
