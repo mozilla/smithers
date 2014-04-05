@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
+import json
 import logging
 import signal
 import sys
 import time
+from os import path
 
 from redis import RedisError, StrictRedis
 from statsd import StatsClient
@@ -67,6 +69,37 @@ def get_timestamps_to_process():
     return sorted(list(intersection))
 
 
+def get_data_for_timestamp(timestamp):
+    """
+    Return aggregate map and share data dict for a timestamp.
+    """
+    data = {
+        'map_total': redis.get(rkeys.MAP_TOTAL),
+        'map_geo': [],
+    }
+    map_geo_key = rkeys.MAP_GEO.format(timestamp=timestamp)
+    geo_data = redis.hgetall(map_geo_key)
+    for latlon, count in geo_data.iteritems():
+        lat, lon = latlon.split(':')
+        data['map_geo'].append({
+            'lat': float(lat),
+            'lon': float(lon),
+            'count': count,
+        })
+
+    return data
+
+
+def write_json_for_timestamp(timestamp):
+    """
+    Write a json file for the given timestamp and data.
+    """
+    data = get_data_for_timestamp(timestamp)
+    filename = path.join(conf.JSON_OUTPUT_DIR, 'stats_{}.json'.format(timestamp))
+    with open(filename, 'w') as fh:
+        json.dump(data, fh)
+
+
 def main():
     counter = 0
 
@@ -75,11 +108,15 @@ def main():
             log.info('Shutdown successful')
             return 0
 
-        print get_timestamps_to_process()
+        for timestamp in get_timestamps_to_process():
+            write_json_for_timestamp(timestamp)
+            redis.zrem(rkeys.MAP_TIMESTAMPS, timestamp)
+            redis.zrem(rkeys.SHARE_TIMESTAMPS, timestamp)
 
         # don't run constantly since we'll only have something
         # to do every ~1 minute
-        time.sleep(20)
+        counter += 1
+        time.sleep(10)
 
 
 if __name__ == '__main__':
