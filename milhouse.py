@@ -84,7 +84,7 @@ def get_data_for_timestamp(timestamp):
         data['map_geo'].append({
             'lat': float(lat),
             'lon': float(lon),
-            'count': count,
+            'count': int(count),
         })
 
     return data
@@ -115,6 +115,8 @@ def main():
             write_json_for_timestamp(timestamp)
             redis.zrem(rkeys.MAP_TIMESTAMPS, timestamp)
             redis.zrem(rkeys.SHARE_TIMESTAMPS, timestamp)
+            map_geo_key = rkeys.MAP_GEO.format(timestamp=timestamp)
+            redis.delete(map_geo_key)
 
         # don't run constantly since we'll only have something
         # to do every ~1 minute

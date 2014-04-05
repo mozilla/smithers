@@ -85,6 +85,9 @@ def process_map(timestamp, geo_data):
 
     # store the timestamp used in a sorted set for use in milhouse
     redis.zadd(rkeys.MAP_TIMESTAMPS, unix_min, unix_min)
+    # TODO: Remove this when we're producing share data
+    # This makes milhouse go ahead and produce the data files.
+    redis.zadd(rkeys.SHARE_TIMESTAMPS, unix_min, unix_min)
 
 
 def process_share(timestamp, geo_data, share_type):

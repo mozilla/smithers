@@ -3,3 +3,4 @@ touch tmp/restart.txt
 echo "restarting smithers' daemons"
 
 sudo supervisorctl restart lisa
+sudo supervisorctl restart milhouse
