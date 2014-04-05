@@ -72,6 +72,7 @@ def process_map(timestamp, geo_data):
         }
     except KeyError:
         log.info('Geo data contained no location.')
+        log.debug(geo_data)
         return
 
     geo_key = '{lat}:{lon}'.format(**location)
