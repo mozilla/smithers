@@ -14,8 +14,9 @@ from redis import RedisError, StrictRedis
 from statsd import StatsClient
 
 from smithers import conf
-from smithers.conf import redis_keys as rkeys
-from smithers.utils import get_db_time_key
+from smithers import data_types
+from smithers import redis_keys as rkeys
+from smithers.utils import get_epoch_minute
 
 
 log = logging.getLogger('lisa')
@@ -62,7 +63,7 @@ signal.signal(signal.SIGINT, handle_signals)
 signal.signal(signal.SIGTERM, handle_signals)
 
 
-def process_map(timestamp, geo_data):
+def process_map(geo_data):
     """Add download aggregate data to redis."""
     redis.incr(rkeys.MAP_TOTAL)
     try:
@@ -78,21 +79,31 @@ def process_map(timestamp, geo_data):
 
     geo_key = '{lat}:{lon}'.format(**location)
     log.debug('Got location: ' + geo_key)
-    unix_min = get_db_time_key(timestamp)
-    time_key = rkeys.MAP_GEO.format(timestamp=unix_min)
-    log.debug('Got timestamp: ' + unix_min)
+    unix_min = get_epoch_minute()
+    time_key = rkeys.MAP_GEO.format(unix_min)
+    log.debug('Got timestamp: %s' % unix_min)
     redis.hincrby(time_key, geo_key, 1)
 
     # store the timestamp used in a sorted set for use in milhouse
     redis.zadd(rkeys.MAP_TIMESTAMPS, unix_min, unix_min)
-    # TODO: Remove this when we're producing share data
-    # This makes milhouse go ahead and produce the data files.
-    redis.zadd(rkeys.SHARE_TIMESTAMPS, unix_min, unix_min)
 
 
-def process_share(timestamp, geo_data, share_type):
+def process_share(geo_data, share_type):
     """Add share aggregate data to redis."""
     log.debug('Processing as SHARE')
+    redis.incr(rkeys.SHARE_TOTAL)
+    redis.hincrby(rkeys.SHARE_ISSUES, share_type)
+    country = geo_data.get('country', geo_data.get('registered_country'))
+    if country:
+        country = country['iso_code']
+        redis.hincrby(rkeys.SHARE_COUNTRIES, country)
+        redis.hincrby(rkeys.SHARE_COUNTRY_ISSUES.format(country), share_type)
+
+    continent = geo_data.get('continent')
+    if continent:
+        continent = continent['code']
+        redis.hincrby(rkeys.SHARE_CONTINENTS, continent)
+        redis.hincrby(rkeys.SHARE_CONTINENT_ISSUES.format(continent), share_type)
 
 
 def main():
@@ -110,14 +121,17 @@ def main():
             return 1
 
         log.debug('Got log data: ' + ip_info[1])
-        rtype, rtime, ip = ip_info[1].split(',')
+        try:
+            rtype, ip = ip_info[1].split(',')
+        except ValueError:
+            continue
         record = geo.get(ip)
         if record:
             # everything goes for total count and map
-            process_map(rtime, record)
+            process_map(record)
             # only shares get more processing
-            if rtype != conf.DOWNLOAD:
-                process_share(rtime, record, rtype)
+            if rtype != data_types.DOWNLOAD:
+                process_share(record, rtype)
 
         if args.verbose:
             sys.stdout.write('.')

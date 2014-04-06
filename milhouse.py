@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import division
+
 import argparse
 import json
 import logging
@@ -8,11 +10,12 @@ import sys
 import time
 from os import path
 
-from redis import RedisError, StrictRedis
+from redis import StrictRedis
 from statsd import StatsClient
 
 from smithers import conf
-from smithers.conf import redis_keys as rkeys
+from smithers import data_types
+from smithers import redis_keys as rkeys
 
 
 log = logging.getLogger('milhouse')
@@ -55,29 +58,30 @@ def get_timestamps_to_process():
 
     Basic idea is:
 
-    1. Get all but the most recent 2 timestamps from the
+    1. Get all but the most recent timestamp from the
        redis sorted set. This should allow for them to be
        sure to be done filling.
-    2. Do the same for the sorted set for share data.
-    3. Cast these lists as sets.
-    4. Get the intersection of these sets.
-    5. Process all of the timestamps from the intersection.
+    2. Process the list.
     """
-    map_set = set(int(ts) for ts in redis.zrange(rkeys.MAP_TIMESTAMPS, 0, -3))
-    share_set = set(int(ts) for ts in redis.zrange(rkeys.SHARE_TIMESTAMPS, 0, -3))
-    intersection = map_set & share_set
-    return sorted(list(intersection))
+    return redis.zrange(rkeys.MAP_TIMESTAMPS, 0, -2)
 
 
 def get_data_for_timestamp(timestamp):
     """
     Return aggregate map and share data dict for a timestamp.
     """
+    issue_dict = dict((issue, []) for issue in data_types.types_map.values())
+    issue_continents = issue_dict.copy()
+    issue_countries = issue_dict.copy()
     data = {
         'map_total': int(redis.get(rkeys.MAP_TOTAL)),
         'map_geo': [],
+        'continent_issues': {},
+        'issue_continents': issue_continents,
+        'country_issues': {},
+        'issue_countries': issue_countries,
     }
-    map_geo_key = rkeys.MAP_GEO.format(timestamp=timestamp)
+    map_geo_key = rkeys.MAP_GEO.format(timestamp)
     geo_data = redis.hgetall(map_geo_key)
     for latlon, count in geo_data.iteritems():
         lat, lon = latlon.split(':')
@@ -86,6 +90,38 @@ def get_data_for_timestamp(timestamp):
             'lon': float(lon),
             'count': int(count),
         })
+
+    continent_totals = redis.hgetall(rkeys.SHARE_CONTINENTS)
+    continent_issues = data['continent_issues']
+    for continent, count in continent_totals.iteritems():
+        issues = redis.hgetall(rkeys.SHARE_CONTINENT_ISSUES.format(continent))
+        continent_issues[continent] = {}
+        for issue, issue_count in issues.iteritems():
+            issue = data_types.types_map[issue]
+            percent = (issue_count / count) * 100
+            continent_issues[continent][issue] = percent
+            issue_continents[issue].append({
+                'continent': continent,
+                'count': percent,
+            })
+
+    country_totals = redis.hgetall(rkeys.SHARE_COUNTRIES)
+    country_issues = data['country_issues']
+    for country, count in country_totals.iteritems():
+        count = int(count)
+        if count < conf.COUNTRY_MIN_SHARE:
+            continue
+        issues = redis.hgetall(rkeys.SHARE_COUNTRY_ISSUES.format(country))
+        country_issues[country] = {}
+        for issue, issue_count in issues.iteritems():
+            issue_count = int(issue_count)
+            issue = data_types.types_map[issue]
+            percent = (issue_count / count) * 100
+            country_issues[country][issue] = percent
+            issue_countries[issue].append({
+                'country': country,
+                'count': percent,
+            })
 
     return data
 
@@ -99,6 +135,8 @@ def write_json_for_timestamp(timestamp):
     with open(filename, 'w') as fh:
         json.dump(data, fh)
 
+    # update the last processed timestamp for use in mrburns.
+    redis.set(rkeys.LATEST_TIMESTAMP, timestamp)
     log.debug('Wrote file for {}'.format(timestamp))
     log.debug(filename)
 
@@ -114,8 +152,7 @@ def main():
         for timestamp in get_timestamps_to_process():
             write_json_for_timestamp(timestamp)
             redis.zrem(rkeys.MAP_TIMESTAMPS, timestamp)
-            redis.zrem(rkeys.SHARE_TIMESTAMPS, timestamp)
-            map_geo_key = rkeys.MAP_GEO.format(timestamp=timestamp)
+            map_geo_key = rkeys.MAP_GEO.format(timestamp)
             redis.delete(map_geo_key)
 
         # don't run constantly since we'll only have something
