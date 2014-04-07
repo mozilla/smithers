@@ -35,7 +35,9 @@ def get_random_ip():
 
 
 for i in xrange(args.count):
-    issue = random.choice(issues)
+    # weight each run to only some of the issues
+    some_issues = random.sample(issues, 4)
+    issue = random.choice(some_issues)
     r.lpush(redis_keys.IPLOGS, '%s,%s' % (issue, get_random_ip()))
     if args.verbose:
         sys.stdout.write('.')

@@ -71,7 +71,7 @@ def get_issue_dict():
 
 def get_percent(part, total):
     """Return a percentage rounded to hundredths."""
-    return round(part / total, 2)
+    return round(part / total, 4)
 
 
 def get_data_for_timestamp(timestamp):

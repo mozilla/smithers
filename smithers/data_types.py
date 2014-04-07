@@ -10,8 +10,8 @@ CONTROL = '6'
 types_map = {
     PRIVACY: 'privacy',
     OPPORTUNITY: 'opportunity',
-    ACCESSIBILITY: 'accessibility',
+    ACCESSIBILITY: 'access',
     FREEDOM: 'freedom',
-    EDUCATION: 'education',
+    EDUCATION: 'learning',
     CONTROL: 'control',
 }
