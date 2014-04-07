@@ -5,17 +5,16 @@ from __future__ import division
 import argparse
 import json
 import logging
-import math
 import signal
 import sys
 import time
 from os import path
 
-from redis import StrictRedis
 from statsd import StatsClient
 
 from smithers import conf
 from smithers import data_types
+from smithers.redis_client import client as redis
 from smithers import redis_keys as rkeys
 
 
@@ -30,7 +29,6 @@ args = parser.parse_args()
 logging.basicConfig(level=getattr(logging, args.log.upper()),
                     format='%(asctime)s: %(message)s')
 
-redis = StrictRedis()
 statsd = StatsClient(host=conf.STATSD_HOST,
                      port=conf.STATSD_PORT,
                      prefix=conf.STATSD_PREFIX)

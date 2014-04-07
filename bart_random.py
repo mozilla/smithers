@@ -10,9 +10,8 @@ import socket
 import struct
 import sys
 
-import redis
-
-from smithers import conf, data_types, redis_keys
+from smithers import data_types, redis_keys
+from smithers.redis_client import client as r
 
 
 parser = argparse.ArgumentParser(description='Bart throws random IPs at Lisa.')
@@ -23,8 +22,6 @@ parser.add_argument('--downloads', action='store_true',
 parser.add_argument('-v', '--verbose', action='store_true')
 
 args = parser.parse_args()
-
-r = redis.StrictRedis()
 
 issues = data_types.types_map.keys()
 if args.downloads:
