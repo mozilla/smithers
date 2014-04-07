@@ -96,9 +96,11 @@ def get_data_for_timestamp(timestamp):
     continent_totals = redis.hgetall(rkeys.SHARE_CONTINENTS)
     continent_issues = data['continent_issues']
     for continent, count in continent_totals.iteritems():
+        count = int(count)
         issues = redis.hgetall(rkeys.SHARE_CONTINENT_ISSUES.format(continent))
         continent_issues[continent] = {}
         for issue, issue_count in issues.iteritems():
+            issue_count = int(issue_count)
             issue = data_types.types_map[issue]
             percent = (issue_count / count) * 100
             continent_issues[continent][issue] = percent
