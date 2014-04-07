@@ -74,9 +74,9 @@ def get_data_for_timestamp(timestamp):
     issue_continents = issue_dict.copy()
     issue_countries = issue_dict.copy()
     data = {
-        'map_total': int(redis.get(rkeys.MAP_TOTAL)),
+        'map_total': int(redis.get(rkeys.MAP_TOTAL) or 0),
         'map_geo': [],
-        'share_total': int(redis.get(rkeys.SHARE_TOTAL)),
+        'share_total': int(redis.get(rkeys.SHARE_TOTAL) or 0),
         'continent_issues': {},
         'issue_continents': issue_continents,
         'country_issues': {},
