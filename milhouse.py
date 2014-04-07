@@ -5,6 +5,7 @@ from __future__ import division
 import argparse
 import json
 import logging
+import math
 import signal
 import sys
 import time
@@ -66,13 +67,21 @@ def get_timestamps_to_process():
     return redis.zrange(rkeys.MAP_TIMESTAMPS, 0, -2)
 
 
+def get_issue_dict():
+    return dict((issue, []) for issue in data_types.types_map.values())
+
+
+def get_percent(part, total):
+    """Return a percentage rounded to hundredths."""
+    return round(part / total, 2)
+
+
 def get_data_for_timestamp(timestamp):
     """
     Return aggregate map and share data dict for a timestamp.
     """
-    issue_dict = dict((issue, []) for issue in data_types.types_map.values())
-    issue_continents = issue_dict.copy()
-    issue_countries = issue_dict.copy()
+    issue_continents = get_issue_dict()
+    issue_countries = get_issue_dict()
     data = {
         'map_total': int(redis.get(rkeys.MAP_TOTAL) or 0),
         'map_geo': [],
@@ -102,7 +111,7 @@ def get_data_for_timestamp(timestamp):
         for issue, issue_count in issues.iteritems():
             issue_count = int(issue_count)
             issue = data_types.types_map[issue]
-            percent = (issue_count / count) * 100
+            percent = get_percent(issue_count, count)
             continent_issues[continent][issue] = percent
             issue_continents[issue].append({
                 'continent': continent,
@@ -121,7 +130,7 @@ def get_data_for_timestamp(timestamp):
         for issue, issue_count in issues.iteritems():
             issue_count = int(issue_count)
             issue = data_types.types_map[issue]
-            percent = (issue_count / count) * 100
+            percent = get_percent(issue_count, count)
             country_issues[country][issue] = percent
             issue_countries[issue].append({
                 'country': country,
