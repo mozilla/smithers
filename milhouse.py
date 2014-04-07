@@ -144,7 +144,7 @@ def get_data_for_timestamp(timestamp):
     for issue, count in share_issues.iteritems():
         count = int(count)
         issue = data_types.types_map[issue]
-        global_issues[issue] = (count / share_total) * 100
+        global_issues[issue] = get_percent(count, share_total)
 
     return data
 
