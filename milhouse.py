@@ -76,6 +76,7 @@ def get_data_for_timestamp(timestamp):
     data = {
         'map_total': int(redis.get(rkeys.MAP_TOTAL)),
         'map_geo': [],
+        'share_total': int(redis.get(rkeys.SHARE_TOTAL)),
         'continent_issues': {},
         'issue_continents': issue_continents,
         'country_issues': {},
@@ -91,6 +92,7 @@ def get_data_for_timestamp(timestamp):
             'count': int(count),
         })
 
+    ## CONTINENTS ##
     continent_totals = redis.hgetall(rkeys.SHARE_CONTINENTS)
     continent_issues = data['continent_issues']
     for continent, count in continent_totals.iteritems():
@@ -105,6 +107,7 @@ def get_data_for_timestamp(timestamp):
                 'count': percent,
             })
 
+    ## COUNTRIES ##
     country_totals = redis.hgetall(rkeys.SHARE_COUNTRIES)
     country_issues = data['country_issues']
     for country, count in country_totals.iteritems():
@@ -122,6 +125,15 @@ def get_data_for_timestamp(timestamp):
                 'country': country,
                 'count': percent,
             })
+
+    ## GLOBAL ##
+    share_issues = redis.hgetall(rkeys.SHARE_ISSUES)
+    share_total = data['share_total']
+    global_issues = country_issues['GLOBAL'] = {}
+    for issue, count in share_issues.iteritems():
+        count = int(count)
+        issue = data_types.types_map[issue]
+        global_issues[issue] = (count / share_total) * 100
 
     return data
 
