@@ -15,3 +15,5 @@ types_map = {
     EDUCATION: 'learning',
     CONTROL: 'control',
 }
+
+name_to_id = {v: k for k, v in types_map.items()}
