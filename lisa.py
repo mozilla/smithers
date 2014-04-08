@@ -67,9 +67,10 @@ def process_map(geo_data):
     """Add download aggregate data to redis."""
     redis.incr(rkeys.MAP_TOTAL)
     try:
+        # rounding to aid in geo aggregation
         location = {
-            'lat': geo_data['location']['latitude'],
-            'lon': geo_data['location']['longitude'],
+            'lat': round(geo_data['location']['latitude'], 2),
+            'lon': round(geo_data['location']['longitude'], 2),
         }
     except KeyError:
         # this appears to mostly happen with anonymous proxies
