@@ -69,8 +69,8 @@ def process_map(geo_data):
     try:
         # rounding to aid in geo aggregation
         location = {
-            'lat': round(geo_data['location']['latitude'], 2),
-            'lon': round(geo_data['location']['longitude'], 2),
+            'lat': round(geo_data['location']['latitude'], 1),
+            'lon': round(geo_data['location']['longitude'], 1),
         }
     except KeyError:
         # this appears to mostly happen with anonymous proxies
